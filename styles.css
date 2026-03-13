@@ -345,7 +345,10 @@ body{
   border-color: rgba(255,80,70,.45);
   box-shadow: 0 0 0 1px rgba(255,80,70,.12) inset;
 }
-.btn.danger:hover{box-shadow: 0 0 18px var(--dangerGlow)}
+.btn.small{
+  padding: 6px 10px;
+  font-size: 12px;
+}
 .hint{font-size:10px; letter-spacing:.12em; opacity:.8}
 .danger-text{color: rgba(255,90,80,.95)}
 
@@ -454,5 +457,37 @@ cursor:pointer;
 box-shadow: 0 0 12px rgba(255,80,70,.4);
 
 border-color: rgba(255,80,70,.7);
+
+}
+
+.editBtn{
+
+margin-top:6px;
+
+margin-right:6px;
+
+border:1px solid rgba(120,255,230,.45);
+
+background: rgba(0,0,0,.25);
+
+color: rgba(180,255,240,.95);
+
+padding:4px 8px;
+
+font-size:10px;
+
+letter-spacing:.15em;
+
+text-transform:uppercase;
+
+cursor:pointer;
+
+}
+
+.editBtn:hover{
+
+box-shadow: 0 0 12px rgba(120,255,230,.4);
+
+border-color: rgba(120,255,230,.7);
 
 }
