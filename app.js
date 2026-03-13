@@ -1,7 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { 
 getAuth,
-signInWithEmailAndPassword
+signInWithEmailAndPassword,
+signOut
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 import {
@@ -11,7 +12,8 @@ addDoc,
 onSnapshot,
 query,
 orderBy,
-deleteDoc
+deleteDoc,
+updateDoc
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 
@@ -35,6 +37,9 @@ const admins = [
 "agent.alan@secure.com",
 "agent.andreane@secure.com"
 ]
+
+let currentChatType = 'group'; // 'group' or 'private'
+let privateUser = null;
 
 
 
@@ -122,6 +127,53 @@ alert("ACCES REFUSE")
 
 
 
+/* DECONNEXION */
+
+window.logout = async function(){
+await signOut(auth);
+location.reload();
+}
+
+
+
+/* COMMENCER CHAT PRIVE */
+
+window.startPrivateChat = function(user){
+currentChatType = 'private';
+privateUser = user;
+loadMessages();
+const title = document.querySelector('.chat-title');
+title.innerText = `CHAT PRIVE AVEC ${user.toUpperCase()}`;
+}
+
+
+
+/* REVENIR AU GROUPE */
+
+window.switchToGroup = function(){
+currentChatType = 'group';
+privateUser = null;
+loadMessages();
+const title = document.querySelector('.chat-title');
+title.innerText = 'MESSAGERIE SECURISEE';
+}
+
+
+
+/* EDITER MESSAGE */
+
+window.editMessage = async function(ref, oldText){
+const newText = prompt("Modifier le message:", oldText);
+if(newText && newText !== oldText){
+await updateDoc(ref, {
+text: newText,
+modified: true
+});
+}
+}
+
+
+
 /* ENVOI MESSAGE */
 
 window.send = async function(){
@@ -130,7 +182,13 @@ const input = document.getElementById("messageInput")
 
 if(!input.value) return
 
-await addDoc(collection(db,"messages"),{
+let collectionName = "messages";
+if(currentChatType === 'private'){
+const users = [auth.currentUser.email.split("@")[0], privateUser].sort();
+collectionName = `private_${users[0]}_${users[1]}`;
+}
+
+await addDoc(collection(db, collectionName),{
 
 text: input.value,
 user: auth.currentUser.email.split("@")[0],
@@ -148,8 +206,14 @@ input.value=""
 
 function loadMessages(){
 
+let collectionName = "messages";
+if(currentChatType === 'private'){
+const users = [auth.currentUser.email.split("@")[0], privateUser].sort();
+collectionName = `private_${users[0]}_${users[1]}`;
+}
+
 const q = query(
-collection(db,"messages"),
+collection(db, collectionName),
 orderBy("time")
 )
 
@@ -165,7 +229,7 @@ const m = docSnap.data()
 
 const div = document.createElement("div")
 
-const current = auth.currentUser.email
+const current = auth.currentUser.email.split("@")[0]
 
 
 if(m.user === current){
@@ -174,10 +238,24 @@ div.className = "msg me"
 div.className = "msg"
 }
 
+let modifiedText = "";
+if(m.modified){
+modifiedText = " (modifié)";
+}
+
 div.innerHTML = `
-<div class="meta">${m.user.split("@")[0]}</div>
+<div class="meta">${m.user}${modifiedText}</div>
 <div class="body">${m.text}</div>
 `
+
+/* bouton modifier pour ses propres messages */
+if(m.user === current){
+const editBtn = document.createElement("button");
+editBtn.className = "editBtn";
+editBtn.innerText = "MODIFIER";
+editBtn.onclick = () => editMessage(docSnap.ref, m.text);
+div.appendChild(editBtn);
+}
 
 /* bouton suppression admin */
 
