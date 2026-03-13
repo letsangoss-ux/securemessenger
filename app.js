@@ -46,6 +46,19 @@ const allUsers = [
 
 let currentChatType = 'group'; // 'group' or 'private'
 let privateUser = null;
+let notifications = {}; // prefix -> bool indicating unread message
+
+function markNotification(userPrefix){
+  notifications[userPrefix] = true;
+  renderUserList();
+}
+
+function clearNotification(userPrefix){
+  if(notifications[userPrefix]){
+    delete notifications[userPrefix];
+    renderUserList();
+  }
+}
 
 
 
@@ -113,16 +126,17 @@ const pass = document.getElementById("pass").value
 try{
 
 await signInWithEmailAndPassword(
-auth,
-user + "@secure.com",
-pass
-)
+        auth,
+        user + "@secure.com",
+        pass
+      )
 
-loginScreen.dataset.visible="false"
-appScreen.dataset.visible="true"
+      loginScreen.dataset.visible = "false"
+      appScreen.dataset.visible = "true"
 
-loadUsers()
-loadMessages()
+      loadUsers()
+      setupPrivateListeners();
+      loadMessages()
 
 }catch(e){
 
@@ -136,7 +150,7 @@ alert("ACCES REFUSE")
 
 /* CHARGER UTILISATEURS */
 
-function loadUsers(){
+function renderUserList(){
   const current = auth.currentUser.email.split("@")[0];
   const filtered = allUsers.filter(u => u !== current);
   const list = document.getElementById("userList");
@@ -145,13 +159,45 @@ function loadUsers(){
     const div = document.createElement("div");
     div.className = "user";
     div.onclick = () => startPrivateChat(u);
-    // afficher juste la partie après le point et capitaliser
     const pretty = u.split('.')
       .slice(-1)[0]
       .replace(/^./, c => c.toUpperCase());
     div.innerText = pretty;
+    if(notifications[u]){
+      const badge = document.createElement('span');
+      badge.className = 'badge';
+      div.appendChild(badge);
+    }
     list.appendChild(div);
   });
+}
+
+
+/* listeners pour toutes les conversations privées */
+
+function setupPrivateListeners(){
+  const current = auth.currentUser.email.split("@")[0];
+  allUsers.filter(u => u !== current).forEach(other => {
+    const users = [current, other].sort();
+    const coll = collection(db, `private_${users[0]}_${users[1]}`);
+    const q = query(coll, orderBy("timestamp"));
+    onSnapshot(q, snapshot => {
+      snapshot.docChanges().forEach(change => {
+        if(change.type === 'added'){
+          const m = change.doc.data();
+          if(m.user !== current){
+            if(!(currentChatType === 'private' && privateUser === other)){
+              markNotification(other);
+            }
+          }
+        }
+      });
+    });
+  });
+}
+
+function loadUsers(){
+  renderUserList();
 }
 
 
@@ -170,6 +216,7 @@ location.reload();
 window.startPrivateChat = function(userPrefix){
   currentChatType = 'private';
   privateUser = userPrefix;
+  clearNotification(userPrefix);
   loadMessages();
   const title = document.querySelector('.chat-title');
   const pretty = userPrefix.split('.')
@@ -210,28 +257,40 @@ modified: true
 /* ENVOI MESSAGE */
 
 window.send = async function(){
+  const input = document.getElementById("messageInput");
+  const fileInput = document.getElementById("fileInput");
 
-const input = document.getElementById("messageInput")
+  if(!input.value && !fileInput.files.length) return;
 
-if(!input.value) return
+  let collectionName = "messages";
+  if(currentChatType === 'private'){
+    const users = [auth.currentUser.email.split("@")[0], privateUser].sort();
+    collectionName = `private_${users[0]}_${users[1]}`;
+    // clear notification when sending to someone you are already chatting with
+    clearNotification(privateUser);
+  }
 
-let collectionName = "messages";
-if(currentChatType === 'private'){
-const users = [auth.currentUser.email.split("@")[0], privateUser].sort();
-collectionName = `private_${users[0]}_${users[1]}`;
-}
+  const messageObj = {
+    user: auth.currentUser.email.split("@")[0],
+    timestamp: Date.now()
+  };
+  if(input.value) messageObj.text = input.value;
+  if(fileInput.files.length){
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+    reader.onload = async () => {
+      messageObj.fileData = reader.result; // base64 URL
+      messageObj.fileName = file.name;
+      await addDoc(collection(db, collectionName), messageObj);
+    };
+    reader.readAsDataURL(file);
+  } else {
+    await addDoc(collection(db, collectionName), messageObj);
+  }
 
-await addDoc(collection(db, collectionName),{
-
-text: input.value,
-user: auth.currentUser.email.split("@")[0],
-timestamp: Date.now()
-
-})
-
-input.value=""
-
-}
+  input.value = "";
+  fileInput.value = "";
+};
 
 
 
@@ -257,62 +316,67 @@ const box = document.getElementById("messages")
 box.innerHTML=""
 
 snapshot.forEach((docSnap)=>{
+  const m = docSnap.data();
+  const div = document.createElement("div");
+  const current = auth.currentUser.email.split("@")[0];
 
-const m = docSnap.data()
+  if(m.user === current){
+    div.className = "msg me";
+  } else {
+    div.className = "msg";
+  }
 
-const div = document.createElement("div")
+  let modifiedText = "";
+  if(m.modified){
+    modifiedText = " (modifié)";
+  }
 
-const current = auth.currentUser.email.split("@")[0]
+  let bodyHtml = m.text ? m.text : "";
+  if(m.fileData){
+    if(m.fileData.startsWith('data:image')){
+      bodyHtml += `<br><img src="${m.fileData}" alt="${m.fileName}" style="max-width:200px;">`;
+    } else {
+      bodyHtml += `<br><a href="${m.fileData}" download="${m.fileName}">Télécharger ${m.fileName}</a>`;
+    }
+  }
 
-
-if(m.user === current){
-div.className = "msg me"
-}else{
-div.className = "msg"
-}
-
-let modifiedText = "";
-if(m.modified){
-modifiedText = " (modifié)";
-}
-
-div.innerHTML = `
+  div.innerHTML = `
 <div class="meta">${m.user}${modifiedText}</div>
-<div class="body">${m.text}</div>
-`
+<div class="body">${bodyHtml}</div>
+`;
 
-/* bouton modifier pour ses propres messages */
-if(m.user === current){
-const editBtn = document.createElement("button");
-editBtn.className = "editBtn";
-editBtn.innerText = "MODIFIER";
-editBtn.onclick = () => editMessage(docSnap.ref, m.text);
-div.appendChild(editBtn);
-}
+  /* bouton modifier pour ses propres messages */
+  if(m.user === current){
+    const editBtn = document.createElement("button");
+    editBtn.className = "editBtn";
+    editBtn.innerText = "MODIFIER";
+    editBtn.onclick = () => editMessage(docSnap.ref, m.text);
+    div.appendChild(editBtn);
+  }
 
-/* bouton suppression admin */
+  /* bouton suppression admin */
+  if(admins.includes(auth.currentUser.email)){
+    const del = document.createElement("button");
+    del.className = "deleteBtn";
+    del.innerText = "SUPPRIMER";
+    del.onclick = async ()=>{
+      await deleteDoc(docSnap.ref);
+    };
+    div.appendChild(del);
+  }
 
-if(admins.includes(auth.currentUser.email)){
-
-const del = document.createElement("button")
-
-del.className = "deleteBtn"
-
-del.innerText = "SUPPRIMER"
-
-del.onclick = async ()=>{
-
-await deleteDoc(docSnap.ref)
-
-}
-
-div.appendChild(del)
-
-}
-
-box.appendChild(div)
-
-})
+  box.appendChild(div);
+  // notification logic
+  if(currentChatType === 'private' && m.user !== current && m.user === privateUser){
+    // when viewing the chat with the sender, clear notification
+    clearNotification(m.user);
+  } else if(currentChatType === 'group' && m.user !== current){
+    // not in chat with sender
+    markNotification(m.user);
+  } else if(currentChatType==='private' && m.user!==current && m.user!==privateUser){
+    markNotification(m.user);
+  }
+});
 
 })
 
