@@ -40,6 +40,8 @@ UTILISATEURS AUTORISES UNIQUEMENT
 
 <div class="chip">CHIFFREMENT: AES-256</div>
 
+<button class="btn small" onclick="logout()">DECONNEXION</button>
+
 </div>
 
 </div>
@@ -100,15 +102,6 @@ VEUILLEZ PATIENTER...
 
 <button class="btn danger" onclick="login()">ENTRER</button>
 
-<div class="hint">
-
-Comptes test :  
-agent.alpha  
-agent.bravo  
-agent.charlie
-
-</div>
-
 </div>
 
 </div>
@@ -127,10 +120,10 @@ agent.charlie
 
 <div class="box-title">UTILISATEURS</div>
 
-<div class="list">
+<div class="list" id="userList">
 
-<div class="user">agent.alan</div>
-<div class="user">agent.andreane</div>
+<div class="user" onclick="startPrivateChat('Alan')">Alan</div>
+<div class="user" onclick="startPrivateChat('Andreane')">Andreane</div>
 
 </div>
 
@@ -144,6 +137,7 @@ agent.charlie
 
 <div class="chat-head">
 <div class="chat-title">MESSAGERIE SECURISEE</div>
+<button class="btn small" onclick="switchToGroup()">GROUPE</button>
 </div>
 
 <div class="messages" id="messages"></div>
