@@ -260,7 +260,11 @@ window.switchToGroup = function(){
 /* VIDER FICHIER */
 
 window.clearFile = function(){
-  document.getElementById("fileInput").value = "";
+  const fileInput = document.getElementById("fileInput");
+  fileInput.value = "";
+  // Pour certains navigateurs, forcer le reset
+  fileInput.type = "text";
+  fileInput.type = "file";
 }
 
 
@@ -308,6 +312,7 @@ window.send = async function(){
       messageObj.fileURL = url;
       messageObj.fileName = file.name;
       await addDoc(collection(db, collectionName), messageObj);
+      alert("Fichier envoyé avec succès !");
     } catch (error) {
       alert("Erreur lors de l'envoi du fichier : " + error.message);
       return; // ne pas vider si erreur
@@ -396,16 +401,7 @@ snapshot.forEach((docSnap)=>{
   }
 
   box.appendChild(div);
-  // notification logic
-  if(currentChatType === 'private' && m.user !== current && m.user === privateUser){
-    // when viewing the chat with the sender, clear notification
-    clearNotification(m.user);
-  } else if(currentChatType === 'group' && m.user !== current){
-    // not in chat with sender
-    markNotification(m.user);
-  } else if(currentChatType==='private' && m.user!==current && m.user!==privateUser){
-    markNotification(m.user);
-  }
+
 });
 
 })
