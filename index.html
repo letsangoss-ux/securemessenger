@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<meta charset="UTF-8">
+<title>Terminal Confidentiel</title>
+
+<link rel="stylesheet" href="styles.css">
+
+</head>
+
+<body>
+
+<div class="root">
+
+<div class="fx fx-grid"></div>
+<div class="fx fx-noise"></div>
+<div class="fx fx-scanlines"></div>
+<div class="fx fx-vignette"></div>
+<div class="fx fx-flicker"></div>
+
+<!-- BARRE DU HAUT -->
+
+<div class="hudbar">
+
+<div class="hud-left">
+<div class="hud-title">CONSOLE</div>
+<div class="hud-sub">
+ACCES CLASSIFIE
+<span class="sep">//</span>
+UTILISATEURS AUTORISES UNIQUEMENT
+</div>
+</div>
+
+<div class="hud-right">
+
+<div class="chip" id="time">00:00:00</div>
+
+<div class="chip">LIEN: OK</div>
+
+<div class="chip">CHIFFREMENT: AES-256</div>
+
+</div>
+
+</div>
+
+<!-- ECRAN DE CHARGEMENT -->
+
+<div class="screen" id="loading" data-visible="true">
+
+<div class="panel">
+
+<div class="panel-inner center">
+
+<div class="big">CHARGEMENT<span class="dots"></span></div>
+
+<div class="meter-bar">
+<div class="meter-fill" id="bar"></div>
+</div>
+
+<div class="meter-meta">
+
+<div>INITIALISATION SYSTEME</div>
+
+<div id="percent">0%</div>
+
+</div>
+
+<div class="kpi">
+
+<div><span class="k">ETAT</span> <span class="v">FINALISATION</span></div>
+
+<div><span class="k">TRACE</span> <span class="v">/UI/PREPARATION/CONNEXION</span></div>
+
+</div>
+
+<div class="foot">
+VEUILLEZ PATIENTER...
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<!-- ECRAN LOGIN -->
+
+<div class="screen" id="login">
+
+<div class="panel">
+
+<div class="panel-inner">
+
+<div class="big center">CONNEXION</div>
+
+<input class="input" id="user" placeholder="IDENTIFIANT">
+
+<input class="input" id="pass" type="password" placeholder="MOT DE PASSE">
+
+<button class="btn danger" onclick="login()">ENTRER</button>
+
+<div class="hint">
+
+Comptes test :  
+agent.alpha  
+agent.bravo  
+agent.charlie
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<!-- INTERFACE MESSAGERIE -->
+
+<div class="screen" id="app">
+
+<div class="desktop">
+
+<div class="sidebar">
+
+<div class="box">
+
+<div class="box-title">UTILISATEURS</div>
+
+<div class="list">
+
+<div class="user">agent.alan</div>
+<div class="user">agent.andreane</div>
+
+</div>
+
+</div>
+
+</div>
+
+<div class="main">
+
+<div class="chatbox">
+
+<div class="chat-head">
+<div class="chat-title">MESSAGERIE SECURISEE</div>
+</div>
+
+<div class="messages" id="messages"></div>
+
+<div class="composer">
+
+<input class="input mini" id="messageInput">
+
+<button class="btn" onclick="send()">ENVOYER</button>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<script type="module" src="app.js"></script>
+
+</body>
+</html>
