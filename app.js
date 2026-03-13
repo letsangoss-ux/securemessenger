@@ -257,6 +257,14 @@ window.switchToGroup = function(){
 
 
 
+/* VIDER FICHIER */
+
+window.clearFile = function(){
+  document.getElementById("fileInput").value = "";
+}
+
+
+
 /* EDITER MESSAGE */
 
 window.editMessage = async function(ref, oldText){
@@ -294,11 +302,16 @@ window.send = async function(){
   if(input.value) messageObj.text = input.value;
   if(fileInput.files.length){
     const file = fileInput.files[0];
-    // upload to storage before sending
-    const url = await uploadFile(file);
-    messageObj.fileURL = url;
-    messageObj.fileName = file.name;
-    await addDoc(collection(db, collectionName), messageObj);
+    try {
+      // upload to storage before sending
+      const url = await uploadFile(file);
+      messageObj.fileURL = url;
+      messageObj.fileName = file.name;
+      await addDoc(collection(db, collectionName), messageObj);
+    } catch (error) {
+      alert("Erreur lors de l'envoi du fichier : " + error.message);
+      return; // ne pas vider si erreur
+    }
   } else {
     await addDoc(collection(db, collectionName), messageObj);
   }
