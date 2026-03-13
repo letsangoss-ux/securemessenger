@@ -349,6 +349,28 @@ body{
   padding: 6px 10px;
   font-size: 12px;
 }
+
+/* notification badge */
+.user .badge{
+  display:inline-block;
+  width:8px;
+  height:8px;
+  background: var(--danger);
+  border-radius:50%;
+  margin-left:6px;
+  vertical-align:middle;
+}
+
+.user.group{
+  font-weight:900;
+  cursor:pointer;
+  padding: 6px 8px;
+  border-bottom:1px solid var(--line);
+}
+
+.user.group:hover{
+  background: rgba(80,255,220,.05);
+}
 .hint{font-size:10px; letter-spacing:.12em; opacity:.8}
 .danger-text{color: rgba(255,90,80,.95)}
 
