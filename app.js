@@ -38,6 +38,12 @@ const admins = [
 "agent.andreane@secure.com"
 ]
 
+// liste des identifiants utilisés pour les chats
+const allUsers = [
+  'agent.alan',
+  'agent.andreane'
+];
+
 let currentChatType = 'group'; // 'group' or 'private'
 let privateUser = null;
 
@@ -115,6 +121,7 @@ pass
 loginScreen.dataset.visible="false"
 appScreen.dataset.visible="true"
 
+loadUsers()
 loadMessages()
 
 }catch(e){
@@ -123,6 +130,28 @@ alert("ACCES REFUSE")
 
 }
 
+}
+
+
+
+/* CHARGER UTILISATEURS */
+
+function loadUsers(){
+  const current = auth.currentUser.email.split("@")[0];
+  const filtered = allUsers.filter(u => u !== current);
+  const list = document.getElementById("userList");
+  list.innerHTML = "";
+  filtered.forEach(u => {
+    const div = document.createElement("div");
+    div.className = "user";
+    div.onclick = () => startPrivateChat(u);
+    // afficher juste la partie après le point et capitaliser
+    const pretty = u.split('.')
+      .slice(-1)[0]
+      .replace(/^./, c => c.toUpperCase());
+    div.innerText = pretty;
+    list.appendChild(div);
+  });
 }
 
 
@@ -138,12 +167,15 @@ location.reload();
 
 /* COMMENCER CHAT PRIVE */
 
-window.startPrivateChat = function(user){
-currentChatType = 'private';
-privateUser = user;
-loadMessages();
-const title = document.querySelector('.chat-title');
-title.innerText = `CHAT PRIVE AVEC ${user.toUpperCase()}`;
+window.startPrivateChat = function(userPrefix){
+  currentChatType = 'private';
+  privateUser = userPrefix;
+  loadMessages();
+  const title = document.querySelector('.chat-title');
+  const pretty = userPrefix.split('.')
+    .slice(-1)[0]
+    .replace(/^./, c => c.toUpperCase());
+  title.innerText = `CHAT PRIVE AVEC ${pretty}`;
 }
 
 
@@ -151,11 +183,12 @@ title.innerText = `CHAT PRIVE AVEC ${user.toUpperCase()}`;
 /* REVENIR AU GROUPE */
 
 window.switchToGroup = function(){
-currentChatType = 'group';
-privateUser = null;
-loadMessages();
-const title = document.querySelector('.chat-title');
-title.innerText = 'MESSAGERIE SECURISEE';
+  currentChatType = 'group';
+  privateUser = null;
+  loadMessages();
+  loadUsers();
+  const title = document.querySelector('.chat-title');
+  title.innerText = 'MESSAGERIE SECURISEE';
 }
 
 
@@ -192,7 +225,7 @@ await addDoc(collection(db, collectionName),{
 
 text: input.value,
 user: auth.currentUser.email.split("@")[0],
-time: Date.now()
+timestamp: Date.now()
 
 })
 
@@ -214,7 +247,7 @@ collectionName = `private_${users[0]}_${users[1]}`;
 
 const q = query(
 collection(db, collectionName),
-orderBy("time")
+orderBy("timestamp")
 )
 
 onSnapshot(q,(snapshot)=>{
