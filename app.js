@@ -15,6 +15,7 @@ orderBy,
 deleteDoc,
 updateDoc
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
 
 
@@ -33,6 +34,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app);
 const admins = [
 "agent.alan@secure.com",
 "agent.andreane@secure.com"
@@ -51,6 +53,13 @@ let notifications = {}; // prefix -> bool indicating unread message
 function markNotification(userPrefix){
   notifications[userPrefix] = true;
   renderUserList();
+}
+
+async function uploadFile(file){
+  const storageRef = ref(storage, `uploads/${Date.now()}_${file.name}`);
+  const snapshot = await uploadBytes(storageRef, file);
+  const url = await getDownloadURL(snapshot.ref);
+  return url;
 }
 
 function clearNotification(userPrefix){
@@ -155,6 +164,14 @@ function renderUserList(){
   const filtered = allUsers.filter(u => u !== current);
   const list = document.getElementById("userList");
   list.innerHTML = "";
+
+  // entrée groupe
+  const grp = document.createElement('div');
+  grp.className = 'user group';
+  grp.innerText = 'GROUPE';
+  grp.onclick = () => switchToGroup();
+  list.appendChild(grp);
+
   filtered.forEach(u => {
     const div = document.createElement("div");
     div.className = "user";
@@ -277,13 +294,11 @@ window.send = async function(){
   if(input.value) messageObj.text = input.value;
   if(fileInput.files.length){
     const file = fileInput.files[0];
-    const reader = new FileReader();
-    reader.onload = async () => {
-      messageObj.fileData = reader.result; // base64 URL
-      messageObj.fileName = file.name;
-      await addDoc(collection(db, collectionName), messageObj);
-    };
-    reader.readAsDataURL(file);
+    // upload to storage before sending
+    const url = await uploadFile(file);
+    messageObj.fileURL = url;
+    messageObj.fileName = file.name;
+    await addDoc(collection(db, collectionName), messageObj);
   } else {
     await addDoc(collection(db, collectionName), messageObj);
   }
@@ -332,11 +347,13 @@ snapshot.forEach((docSnap)=>{
   }
 
   let bodyHtml = m.text ? m.text : "";
-  if(m.fileData){
-    if(m.fileData.startsWith('data:image')){
-      bodyHtml += `<br><img src="${m.fileData}" alt="${m.fileName}" style="max-width:200px;">`;
+  if(m.fileURL){
+    // display based on extension detected from fileName
+    const ext = m.fileName.split('.').pop().toLowerCase();
+    if(['png','jpg','jpeg','gif','webp','bmp'].includes(ext)){
+      bodyHtml += `<br><img src="${m.fileURL}" alt="${m.fileName}" style="max-width:200px;">`;
     } else {
-      bodyHtml += `<br><a href="${m.fileData}" download="${m.fileName}">Télécharger ${m.fileName}</a>`;
+      bodyHtml += `<br><a href="${m.fileURL}" target="_blank">Télécharger ${m.fileName}</a>`;
     }
   }
 
